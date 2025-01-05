@@ -24,6 +24,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { MessageResponseDto } from './dto/message-response.dto';
 
@@ -54,6 +55,8 @@ export class MessagesController {
 
   @Get(MessageRoutesEnum.GET_MESSAGES)
 @ApiOperation({ summary: 'Get chat messages by session_id' })
+@ApiQuery({ name: 'session_id', type: String, required: true, description: 'UUID of the session' })
+@ApiQuery({ name: 'is_public', type: Boolean, required: true, description: 'Filter by public status' })
 @ApiResponse({
   status: 200,
   description: 'List of chat messages',
