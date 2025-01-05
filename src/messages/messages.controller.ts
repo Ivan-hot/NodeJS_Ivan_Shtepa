@@ -1,0 +1,107 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Query,
+  UseGuards,
+  Param,
+  Request,
+  ParseIntPipe,
+  NotFoundException,
+} from '@nestjs/common';
+import { MessagesService } from './messages.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PostMessageDto } from './dto/post-message.dto';
+import { InitSessionDto } from './dto/init-session.dto';
+import { MessageRoutesEnum } from './routes/messages.routes.enum';
+import { RequireAuth } from './decorators/require-auth.decorator';
+import { isUUID } from 'class-validator';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
+
+@ApiTags('Messages')
+@Controller('messages')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+export class MessagesController {
+
+  constructor(
+    private readonly messagesService: MessagesService,
+  ) {}
+
+  @Post(MessageRoutesEnum.INIT)
+  @ApiOperation({ summary: 'Initialize socket connection for a session' })
+  @ApiResponse({ status: 201, description: 'Socket connection initialized' })
+  async initSocketConnection(@Body() initSessionDto: InitSessionDto, @Request() req) {
+    const user_id = req.user?.sub;
+    return this.messagesService.initializeSession(initSessionDto, user_id);
+  }
+
+  @Post(MessageRoutesEnum.POST_MESSAGE)
+  @ApiOperation({ summary: 'Post a new message to a session' })
+  async createMessage(@Body() postMessageDto: PostMessageDto, @Request() req) {
+    const senderId = req.user.sub;
+    return this.messagesService.create(postMessageDto, senderId);
+  }
+
+  @Get(MessageRoutesEnum.GET_MESSAGES)
+  @ApiOperation({ summary: 'Get chat messages by session_id' })
+  async getMessages(
+    @Query('session_id') session_id: string,
+    @RequireAuth() user,
+    @Query('is_public') is_public?: string,
+  ) {
+    const isPublicBoolean = is_public ? is_public === 'true' : undefined;
+    return this.messagesService.getMessageHistory(session_id, user.sub, undefined, isPublicBoolean);
+  }
+
+  @Get(MessageRoutesEnum.ACTIVE_USERS)
+  @ApiOperation({ summary: 'Get active users in a session' })
+  async getActiveUsersInSession(@Param('session_id') session_id: string) {
+    if (!isUUID(session_id)) {
+    throw new NotFoundException(`Session with id ${session_id} not found`);
+  }
+  return this.messagesService.getActiveUsersInSession(session_id);
+}
+
+
+  @Get(MessageRoutesEnum.PRIVATE_MESSAGES)
+  @ApiOperation({ summary: 'Get private chat messages' })
+  async getPrivateMessages(
+    @Query('receiver_id') receiver_id: number,
+    @RequireAuth() user,
+    @Query('skip') skip = 0,
+    @Query('take') take = 50
+  ) {
+    return this.messagesService.findPrivateMessages(user.sub, receiver_id, skip, take);
+  }
+
+  @Patch(MessageRoutesEnum.ADD_USER_TO_PUBLIC)
+@ApiOperation({ summary: 'Add a user to a public chat session' })
+async addUserToSession(@Param('session_id') session_id: string, @Query('user_id', ParseIntPipe) user_id: number) {
+  return this.messagesService.addUserToPublicSession(session_id, user_id);
+}
+
+@Patch(MessageRoutesEnum.ADD_USER_TO_PRIVATE)
+@ApiOperation({ summary: 'Add a user to a private group' })
+async addUserToPrivateGroup(
+  @Param('session_id') session_id: string,
+  @Query('user_id', ParseIntPipe) user_id: number,
+  @RequireAuth() user,
+) {
+  return this.messagesService.addUserToPrivateGroup(session_id, user_id, user.sub);
+}
+
+@Patch(MessageRoutesEnum.REMOVE_USER)
+@ApiOperation({ summary: 'Remove a user from a public chat session' })
+async removeUserFromSession(@Param('session_id') session_id: string, @Query('user_id', ParseIntPipe) user_id: number) {
+  await this.messagesService.removeUserFromSession(session_id, user_id);
+    return {};
+  }
+}
