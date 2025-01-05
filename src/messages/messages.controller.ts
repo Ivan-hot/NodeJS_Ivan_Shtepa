@@ -25,8 +25,10 @@ import {
   ApiOperation,
   ApiResponse,
   ApiQuery,
+  ApiParam,
 } from '@nestjs/swagger';
 import { MessageResponseDto } from './dto/message-response.dto';
+import { UserResponseDto } from 'src/user/dto/user-response.dto';
 
 @ApiTags('Messages')
 @Controller('messages')
@@ -75,14 +77,31 @@ async getMessages(
 }
 
 
-  @Get(MessageRoutesEnum.ACTIVE_USERS)
-  @ApiOperation({ summary: 'Get active users in a session' })
-  async getActiveUsersInSession(@Param('session_id') session_id: string) {
-    if (!isUUID(session_id)) {
+@Get(MessageRoutesEnum.ACTIVE_USERS)
+@ApiOperation({ summary: 'Get active users in a session' })
+@ApiParam({
+  name: 'session_id',
+  type: String,
+  required: true,
+  description: 'UUID of the session',
+})
+@ApiResponse({
+  status: 200,
+  description: 'List of active users in the session',
+  type: [UserResponseDto],
+})
+async getActiveUsersInSession(@Param('session_id') session_id: string): Promise<UserResponseDto[]> {
+  if (!isUUID(session_id)) {
     throw new NotFoundException(`Session with id ${session_id} not found`);
   }
-  return this.messagesService.getActiveUsersInSession(session_id);
+  const users = await this.messagesService.getActiveUsersInSession(session_id);
+
+  return users.map((user) => ({
+    id: user.id,
+    nick_name: user.nick_name,
+  }));
 }
+
 
 
   @Get(MessageRoutesEnum.PRIVATE_MESSAGES)
