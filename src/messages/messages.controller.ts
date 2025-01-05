@@ -26,6 +26,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { MessageResponseDto } from './dto/message-response.dto';
+import { GetMessagesDto } from './dto/get-messages-response.dto';
 
 @ApiTags('Messages')
 @Controller('messages')
@@ -60,16 +61,13 @@ export class MessagesController {
   type: [MessageResponseDto],
 })
 async getMessages(
-  @Query('session_id') session_id: string,
-  @Query('is_public') is_public: string | undefined,
+  @Query(new ValidationPipe({ transform: true })) query: GetMessagesDto,
   @RequireAuth() user,
 ): Promise<MessageResponseDto[]> {
-  const isPublicBoolean = is_public ? is_public === 'true' : undefined;
+  const { session_id } = query;
 
-  // Validate session_id and is_public
-  const messages = await this.messagesService.getMessageHistory(session_id, user.sub, undefined, isPublicBoolean);
-
-  return messages;
+  // Теперь session_id уже проверен как корректный UUID
+  return await this.messagesService.getMessageHistory(session_id, user.sub);
 }
 
 
