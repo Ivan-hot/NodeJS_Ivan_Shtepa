@@ -341,7 +341,6 @@ export class MessagesService {
       where: { session: { id: session_id } },
     };
 
-    // Фильтрация за типом публичности
     if (is_public !== undefined) {
       options.where = { ...options.where, is_public };
     }
@@ -363,7 +362,6 @@ export class MessagesService {
 
     const messages = await this.messagesRepository.find(options);
 
-    // Преобразуем сообщения в DTO
     return messages.map((message) => ({
       id: message.id,
       message_text: message.message_text,
@@ -385,22 +383,6 @@ export class MessagesService {
       },
     }));
   }
-
-  /*
-    if (is_public) {
-      options.where = { is_public: true };
-    } else if (contactId) {
-      options.where = [
-        { sender: { id: user_id }, receiver: { id: contactId } },
-        { sender: { id: contactId }, receiver: { id: user_id } },
-      ];
-    } else {
-      options.where = {};
-    }
-
-    return this.messagesRepository.find(options);
-  }
-  */
 
   async validateSession(session_id: string): Promise<Session> {
     const session = await this.sessionRepository.findOne({ where: { id: session_id } });
