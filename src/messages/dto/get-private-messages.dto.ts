@@ -1,3 +1,4 @@
+/*
 import { IsNumber, IsPositive } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { GetMessagesDto } from './get-messages.dto'; 
@@ -8,3 +9,5 @@ export class GetPrivateMessagesDto extends GetMessagesDto {
   @IsPositive()
   receiver_id: number;
 }
+
+*/

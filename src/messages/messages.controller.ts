@@ -9,6 +9,7 @@ import {
   Param,
   Request,
   ParseIntPipe,
+  ValidationPipe,
   NotFoundException,
 } from '@nestjs/common';
 import { MessagesService } from './messages.service';
@@ -24,6 +25,7 @@ import {
   ApiOperation,
   ApiResponse,
 } from '@nestjs/swagger';
+import { MessageResponseDto } from './dto/message-response.dto';
 
 @ApiTags('Messages')
 @Controller('messages')
@@ -51,15 +53,25 @@ export class MessagesController {
   }
 
   @Get(MessageRoutesEnum.GET_MESSAGES)
-  @ApiOperation({ summary: 'Get chat messages by session_id' })
-  async getMessages(
-    @Query('session_id') session_id: string,
-    @RequireAuth() user,
-    @Query('is_public') is_public?: string,
-  ) {
-    const isPublicBoolean = is_public ? is_public === 'true' : undefined;
-    return this.messagesService.getMessageHistory(session_id, user.sub, undefined, isPublicBoolean);
-  }
+@ApiOperation({ summary: 'Get chat messages by session_id' })
+@ApiResponse({
+  status: 200,
+  description: 'List of chat messages',
+  type: [MessageResponseDto],
+})
+async getMessages(
+  @Query('session_id') session_id: string,
+  @Query('is_public') is_public: string | undefined,
+  @RequireAuth() user,
+): Promise<MessageResponseDto[]> {
+  const isPublicBoolean = is_public ? is_public === 'true' : undefined;
+
+  // Validate session_id and is_public
+  const messages = await this.messagesService.getMessageHistory(session_id, user.sub, undefined, isPublicBoolean);
+
+  return messages;
+}
+
 
   @Get(MessageRoutesEnum.ACTIVE_USERS)
   @ApiOperation({ summary: 'Get active users in a session' })

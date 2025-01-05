@@ -6,6 +6,7 @@ import { PostMessageDto } from './dto/post-message.dto';
 import { User } from 'src/user/entity/user.entity';
 import { Session } from './entity/session.entity';
 import { InitSessionDto } from './dto/init-session.dto';
+import { MessageResponseDto } from './/dto/message-response.dto';
 import { Logger } from '@nestjs/common';
 import { UserParticipantDto } from 'src/user/dto/user-participant.dto';
 import { isUUID } from 'class-validator';
@@ -263,30 +264,55 @@ export class MessagesService {
     is_public?: boolean,
     skip: number = 0,
     take: number = 50,
-  ): Promise<Message[]> {
+  ): Promise<MessageResponseDto[]> {
     const options: FindManyOptions<Message> = {
       order: { created_at: 'DESC' },
       skip,
       take,
-      relations: ['sender', 'receiver', 'session'], 
-      where: { session: { id: session_id } },  
+      relations: ['sender', 'receiver', 'session'],
+      where: { session: { id: session_id } },
     };
-    
-    // Фільтрація за типом публічності групи
-  if (is_public !== undefined) {
-    options.where = { ...options.where, is_public };
+  
+    // Фильтрация за типом публичности
+    if (is_public !== undefined) {
+      options.where = { ...options.where, is_public };
+    }
+  
+    if (!is_public && contactId) {
+      options.where = [
+        { ...options.where, sender: { id: user_id }, receiver: { id: contactId } },
+        { ...options.where, sender: { id: contactId }, receiver: { id: user_id } },
+      ];
+    }
+  
+    const messages = await this.messagesRepository.find(options);
+  
+    // Преобразуем сообщения в DTO
+    return messages.map((message) => ({
+      id: message.id,
+      message_text: message.message_text,
+      is_public: message.is_public,
+      created_at: message.created_at,
+      sender: {
+        id: message.sender.id,
+        nick_name: message.sender.nick_name,
+      },
+      receiver: message.receiver
+        ? {
+            id: message.receiver.id,
+            nick_name: message.receiver.nick_name,
+          }
+        : null,
+      session: {
+        id: message.session.id,
+        session_name: message.session.session_name,
+      },
+    }));
   }
+  
+  
 
-  // Фільтрація для приватних повідомлень між двома користувачами
-  if (!is_public && contactId) {
-    options.where = [
-      { ...options.where, sender: { id: user_id }, receiver: { id: contactId } },
-      { ...options.where, sender: { id: contactId }, receiver: { id: user_id } },
-    ];
-  }
-
-  return this.messagesRepository.find(options);
-}
+  
 /*
     if (is_public) {
       options.where = { is_public: true };

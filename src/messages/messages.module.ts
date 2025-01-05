@@ -7,7 +7,7 @@ import { MessagesGateway } from './gateway/messages.gateway';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../user/users.module';
 import { JwtModule } from '@nestjs/jwt';
-import { Session } from './entity/session.entity';
+import { Session } from '../messages/entity/session.entity';
 import { User } from '../user/entity/user.entity';
 import { SocketModule } from '../socket/socket.module';
 
