@@ -28,4 +28,5 @@ export class Session {
 
   @CreateDateColumn()
   created_at: Date;
+    userGroups: any;
 }

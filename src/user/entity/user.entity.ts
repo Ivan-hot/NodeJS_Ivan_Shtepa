@@ -46,4 +46,5 @@ export class User {
     },
   })
   sessions: Session[];
+    userGroups: any;
 }

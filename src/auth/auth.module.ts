@@ -6,10 +6,13 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserGroup } from 'src/user/entity/user-group.entity';
 
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([UserGroup]),
     UsersModule,
     PassportModule,
     ConfigModule,
@@ -24,6 +27,7 @@ import { AuthController } from './auth.controller';
     }),
     UsersModule,
   ],
+  
   providers: [AuthService, JwtStrategy, JwtService],
   controllers: [AuthController],
   exports: [AuthService, JwtModule, JwtService],

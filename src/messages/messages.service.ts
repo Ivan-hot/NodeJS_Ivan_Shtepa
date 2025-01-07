@@ -16,6 +16,7 @@ import { Logger } from '@nestjs/common';
 import { UserParticipantDto } from 'src/user/dto/user-participant.dto';
 import { isUUID } from 'class-validator';
 import { InvalidUUIDException } from '../messages/utils/messages-error-response.util';
+import { UserGroup } from 'src/user/entity/user-group.entity';
 
 @Injectable()
 export class MessagesService {
@@ -27,6 +28,8 @@ export class MessagesService {
     private readonly sessionRepository: Repository<Session>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(UserGroup)
+    private readonly userGroupRepository: Repository<UserGroup>,
   ) {}
 
   async initializeSession(
@@ -37,25 +40,53 @@ export class MessagesService {
       this.logger.error('User ID is missing');
       throw new BadRequestException('User ID is not provided');
     }
+
     const { session_name, is_private, participants } = initSessionDto;
 
     let session = await this.sessionRepository.findOne({
       where: { session_name, is_private },
     });
+
+    let userEntities: User[] = [];
+
     if (!session) {
-      const uniqueParticipants = new Set(participants.map((id) => id));
-      uniqueParticipants.add(user_id.toString());
-      const userEntities = await this.userRepository.findByIds(
+      const uniqueParticipants = new Set([...participants, user_id]);
+
+      userEntities = await this.userRepository.findByIds(
         Array.from(uniqueParticipants),
       );
+
+      if (userEntities.length === 0) {
+        this.logger.error('No users found for the given participants');
+        throw new BadRequestException('No users found for the given participants');
+      }
+
       session = this.sessionRepository.create({
         session_name,
         is_private,
         participants: userEntities,
       });
       session = await this.sessionRepository.save(session);
+
       this.logger.log(`Session initialized for user ${user_id}`);
+    } else {
+      userEntities = session.participants || [];
     }
+
+    const userGroupEntities = userEntities.map((user) => {
+      return this.userGroupRepository.create({
+        user: user, 
+        session: session,
+        is_creator: user.id === user_id,
+      });
+    });
+
+    await this.userGroupRepository.save(userGroupEntities);
+
+    this.logger.log(
+      `User groups created for session "${session.session_name}"`,
+    );
+
     return session;
   }
 

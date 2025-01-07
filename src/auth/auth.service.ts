@@ -4,6 +4,9 @@ import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import { UpdateUserDto } from '../user/dto/update-user.dto';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserGroup } from 'src/user/entity/user-group.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +16,8 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    @InjectRepository(UserGroup)
+    private readonly userGroupRepository: Repository<UserGroup>,
   ) {}
 
   async login(loginDto: LoginDto) {
@@ -25,6 +30,18 @@ export class AuthService {
       this.logger.warn(`User not found or invalid credentials: ${email}`);
       throw new UnauthorizedException('Invalid email or password');
     }
+
+    const userGroups = await this.userGroupRepository.find({
+      where: { user: { id: user.id } },
+      relations: ['session'],
+    });
+  
+    const groupInfo = userGroups.map((group) => ({
+      session_id: group.session.id,
+      session_name: group.session.session_name,
+      is_private: group.session.is_private,
+      is_creator: group.is_creator,
+    }));
 
     this.logger.log(`Login successful for email: ${email}`);
     return this.generateTokens(user);
