@@ -1,0 +1,20 @@
+{
+  "type": "postgres",
+  "host": "localhost",
+  "port": 5435,
+  "username": "vano",
+  "password": "password123",
+  "database": "chat_database",
+  "entities": ["dist/**/*.entity{.ts,.js}"],
+  "migrations": ["dist/migrations/*{.ts,.js}"],
+  "cli": {
+    "migrationsDir": "src/migrations"
+  },
+  "logging": true,
+  "synchronize": false,
+  "name": "default",
+  "extra": {
+    "schema": "public"
+  },
+  "namingStrategy": "SnakeCaseNamingStrategy"
+}
