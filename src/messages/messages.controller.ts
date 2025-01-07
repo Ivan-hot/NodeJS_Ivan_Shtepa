@@ -70,7 +70,9 @@ async getMessages(
   @RequireAuth() user,
 ): Promise<MessageResponseDto[]> {
   const isPublicBoolean = is_public ? is_public === 'true' : undefined;
-
+  if (!isUUID(session_id)) {
+    throw new NotFoundException(`Session with id ${session_id} not found`);
+  }
   const messages = await this.messagesService.getMessageHistory(session_id, user.sub, undefined, isPublicBoolean);
 
   return messages;
